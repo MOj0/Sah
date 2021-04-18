@@ -40,6 +40,9 @@ public class Sah extends JFrame implements Runnable
 	private static final int nKings = 1;
 	private static final int[] nOfEachFiugre = {nRooks, nKnights, nBishops, nKings, nQueens, nPawns};
 
+	// TODO: 18/04/2021 MINIMAX: TRY CAPTRUTING THE LAST MOVED PIECE FIRST, THEN CHECK EVERYTHING ELSE 
+	// TODO: 18/04/2021 WIN IS BUGGED AGAINST BOT
+
 
 	public static void main(String[] args)
 	{
@@ -624,6 +627,7 @@ public class Sah extends JFrame implements Runnable
 
 	public static void botMove()
 	{
+		long last = System.currentTimeMillis();
 		char[] botFigures = getMyFigures(turn);
 		int bestScore = -Integer.MAX_VALUE;
 		int[] bestMove = new int[4];
@@ -633,6 +637,10 @@ public class Sah extends JFrame implements Runnable
 			for(int x = 0; x < 8; x++)
 			{
 				char figure = board[y][x];
+				if(figure == ' ')
+				{
+					continue;
+				}
 				for(char f : botFigures)
 				{
 					if(figure == f)
@@ -659,11 +667,13 @@ public class Sah extends JFrame implements Runnable
 								}
 							}
 						}
+						break;
 					}
 				}
 			}
 		}
 		moveFigureNoCheckMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]);
+		System.err.println(System.currentTimeMillis() - last); // TODO: 18/04/2021 DELETE? 
 	}
 
 	private static int minimax(int depth, int alpha, int beta, boolean isMaximizing)
@@ -686,8 +696,11 @@ public class Sah extends JFrame implements Runnable
 			{
 				for(int x = 0; x < 8; x++)
 				{
-					boolean breakCon = false;
 					char figure = board[y][x];
+					if(figure == ' ')
+					{
+						continue;
+					}
 					for(char f : myFigures)
 					{
 						if(figure == f)
@@ -710,14 +723,9 @@ public class Sah extends JFrame implements Runnable
 
 										if(beta <= alpha)
 										{
-											breakCon = true;
-											break;
+											return score;
 										}
 									}
-								}
-								if(breakCon)
-								{
-									break;
 								}
 							}
 							break;
@@ -734,8 +742,11 @@ public class Sah extends JFrame implements Runnable
 			{
 				for(int x = 0; x < 8; x++)
 				{
-					boolean breakCon = false;
 					char figure = board[y][x];
+					if(figure == ' ')
+					{
+						continue;
+					}
 					for(char f : myFigures)
 					{
 						if(figure == f)
@@ -758,14 +769,9 @@ public class Sah extends JFrame implements Runnable
 
 										if(beta <= alpha)
 										{
-											breakCon = true;
-											break;
+											return score;
 										}
 									}
-								}
-								if(breakCon)
-								{
-									break;
 								}
 							}
 							break;
