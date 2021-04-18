@@ -23,6 +23,24 @@ public class Sah extends JFrame implements Runnable
 
 	private static Thread networkThread;
 
+	// Minimax algo stuff
+	private static final int pawn = 10;
+	private static final int knight = 30;
+	private static final int bishop = 30;
+	private static final int rook = 50;
+	private static final int queen = 90;
+	private static final int king = 900;
+	private static final int[] figureValues = {rook, knight, bishop, king, queen, pawn}; // It has to match the figures
+	// order
+	private static final int nPawns = 8;
+	private static final int nKnights = 2;
+	private static final int nBishops = 2;
+	private static final int nRooks = 2;
+	private static final int nQueens = 1;
+	private static final int nKings = 1;
+	private static final int[] nOfEachFiugre = {nRooks, nKnights, nBishops, nKings, nQueens, nPawns};
+
+
 	public static void main(String[] args)
 	{
 		new Sah();
@@ -568,11 +586,152 @@ public class Sah extends JFrame implements Runnable
 	}
 
 
+	private static int evaluateBoard(int turn)
+	{
+		//Figure Indices: Rook, Knight, Bishop, King, Queen, Pawn
+		int score = 0;
+		int[] figuresCounter = new int[nOfFigures]; // How many figures are currently on the board
+		char[] myFigures = getMyFigures(turn);
+		for(int i = 0; i < 8; i++)
+		{
+			for(int j = 0; j < 8; j++)
+			{
+				char figure = board[i][j];
+				for(int k = 0; k < myFigures.length; k++)
+				{
+					if(figure == myFigures[k])
+					{
+						figuresCounter[k]++;
+						score += figureValues[k];
+					}
+				}
+			}
+		}
+
+		// If a figure is missing, we have to subtract its value
+		for(int i = 0; i < figuresCounter.length; i++)
+		{
+			int diff = nOfEachFiugre[i] - figuresCounter[i];
+			score -= diff * figureValues[i];
+		}
+
+		return score;
+	}
+
+	private static int maxi(int depth)
+	{
+		if(depth == 0)
+		{
+			return evaluateBoard(turn);
+		}
+
+		int max = -Integer.MAX_VALUE;
+		char[] myFigures = getMyFigures(turn);
+		for(int y = 0; y < 8; y++)
+		{
+			for(int x = 0; x < 8; x++)
+			{
+				char figure = board[y][x];
+				for(char f : myFigures)
+				{
+					if(figure == f)
+					{
+						for(int i = 0; i < 8; i++)
+						{
+							for(int j = 0; j < 8; j++)
+							{
+								if(checkMove("white", turn, y, x, i, j))
+								{
+									moveFigureNoCheckMove(y, x, i, j);
+									int score = mini(depth - 1);
+									if(score > max)
+									{
+										max = score;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return max;
+	}
+
+	private static int mini(int depth)
+	{
+		if(depth == 0)
+		{
+			return -evaluateBoard(turn);
+		}
+
+		int min = Integer.MAX_VALUE;
+		char[] myFigures = getMyFigures(turn);
+		for(int y = 0; y < 8; y++)
+		{
+			for(int x = 0; x < 8; x++)
+			{
+				char figure = board[y][x];
+				for(char f : myFigures)
+				{
+					if(figure == f)
+					{
+						for(int i = 0; i < 8; i++)
+						{
+							for(int j = 0; j < 8; j++)
+							{
+								if(checkMove("white", turn, y, x, i, j))
+								{
+									moveFigureNoCheckMove(y, x, i, j);
+									int score = maxi(depth - 1);
+									if(score < min)
+									{
+										min = score;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return min;
+	}
+
+
 	public static void botMove()
 	{
-		char[] myFigures = getMyFigures(turn);
+//		int[] a = {1, 2, 3};
+//		int[] b = new int[3];
+//		System.arraycopy(a, 0, b, 0, 3);
+//		a[0] = 4;
+//
+//		System.out.print("A: ");
+//		for(int i = 0; i < a.length; i++)
+//		{
+//			System.out.print(a[i] + ", ");
+//		}
+//		System.out.println();
+//		System.out.print("B: ");
+//		for(int i = 0; i < b.length; i++)
+//		{
+//			System.out.print(b[i] + ", ");
+//		}
+//		System.out.println();
 
-		// TODO Improve the algo lmao
+		// FIXME: 18/04/2021 !!!!!!!!!!!!!
+		char[][] newBoard = new char[8][8];
+		for(int i = 0; i < 8; i++)
+		{
+			System.arraycopy(board[i], 0, newBoard[i], 0, 8);
+		}
+		int score = maxi(4);
+		System.err.println(score);
+		board = newBoard;
+
+
+		// TODO Improve the algo lmao: MINIMAX
+		char[] myFigures = getMyFigures(turn);
 		int[] backupMove = new int[] {-1, -1, -1, -1};
 		for(int y = 0; y < 8; y++)
 		{
