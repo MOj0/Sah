@@ -235,7 +235,8 @@ public class Sah extends JFrame implements Runnable
 		return checkFigure(player, turn, sourceFigure, destFigure, sourceCol, sourceRow, destCol, destRow);
 	}
 
-	private static boolean checkFigure(String player, int turn, char figura, char destFigura, int sourceCol,
+
+	private static boolean checkFigure(String player, int turn, char figure, char destFigura, int sourceCol,
 									   int sourceRow, int destCol, int destRow)
 	{
 		int index = kingIndex; // Deafult is king
@@ -244,7 +245,7 @@ public class Sah extends JFrame implements Runnable
 			for(int i = 0; i < nOfFigures; i++) // Iterate through all figures
 			{
 				char f = (player.equals("black") ? blackFigures : whiteFigures)[i]; // Current player's figure
-				if(figura == f)
+				if(figure == f)
 				{
 					index = i;
 					break;
@@ -256,7 +257,7 @@ public class Sah extends JFrame implements Runnable
 			for(int i = 0; i < nOfFigures; i++) // Iterate through all figures
 			{
 				char f = (turn == 0 ? blackFigures : whiteFigures)[i]; // Current player's figure
-				if(figura == f)
+				if(figure == f)
 				{
 					index = i;
 					break;
@@ -362,22 +363,22 @@ public class Sah extends JFrame implements Runnable
 		}
 
 		// Check if this move results in a check
-		char tempFigura = board[destRow][destCol];
+		char tempFigure = board[destRow][destCol];
 		// Edge case fix: When opponent was checked, he could respond by checking
 		// If we want to capture the king, which isn't possible in a legal move, so I can return true and avoid
 		// the isCheck() method
-		if(tempFigura == blackFigures[kingIndex] || tempFigura == whiteFigures[kingIndex])
+		if(tempFigure == blackFigures[kingIndex] || tempFigure == whiteFigures[kingIndex])
 		{
 			return true;
 		}
 
 		// Move figure
-		board[destRow][destCol] = figura;
+		board[destRow][destCol] = figure;
 		board[sourceRow][sourceCol] = ' ';
 		int check = isCheck();
 		// Reset board
-		board[sourceRow][sourceCol] = figura;
-		board[destRow][destCol] = tempFigura;
+		board[sourceRow][sourceCol] = figure;
+		board[destRow][destCol] = tempFigure;
 
 		if(check == 2) // Edge case: Both are in check
 		{
@@ -418,6 +419,7 @@ public class Sah extends JFrame implements Runnable
 		}
 		return checkedKing;
 	}
+
 
 	private static boolean isCheckmate(String player, int checkedKing)
 	{
@@ -462,6 +464,7 @@ public class Sah extends JFrame implements Runnable
 		}
 		return true;
 	}
+
 
 	private static boolean isFieldUnderAttack(int kingOfPlayer, int y, int x)
 	{
@@ -578,11 +581,11 @@ public class Sah extends JFrame implements Runnable
 
 				if(king == (checkedKing == 0 ? blackFigures[kingIndex] : whiteFigures[kingIndex]))
 				{
-					return new int[] {y, x};
+					return new int[]{y, x};
 				}
 			}
 		}
-		return new int[] {-1, -1};
+		return new int[]{-1, -1};
 	}
 
 
@@ -618,170 +621,160 @@ public class Sah extends JFrame implements Runnable
 		return score;
 	}
 
-	private static int maxi(int depth)
+
+	public static void botMove()
+	{
+		char[] botFigures = getMyFigures(turn);
+		int bestScore = -Integer.MAX_VALUE;
+		int[] bestMove = new int[4];
+
+		for(int y = 0; y < 8; y++)
+		{
+			for(int x = 0; x < 8; x++)
+			{
+				char figure = board[y][x];
+				for(char f : botFigures)
+				{
+					if(figure == f)
+					{
+						for(int i = 0; i < 8; i++)
+						{
+							for(int j = 0; j < 8; j++)
+							{
+								if(checkMove("white", turn, y, x, i, j))
+								{
+									char temp = board[i][j];
+									board[i][j] = board[y][x];
+									board[y][x] = ' ';
+
+									int score = minimax(3, -Integer.MAX_VALUE, Integer.MAX_VALUE, false);
+									if(score > bestScore)
+									{
+										bestScore = score;
+										bestMove = new int[]{y, x, i, j};
+									}
+
+									board[y][x] = board[i][j];
+									board[i][j] = temp;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		moveFigureNoCheckMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]);
+	}
+
+	private static int minimax(int depth, int alpha, int beta, boolean isMaximizing)
 	{
 		if(depth == 0)
 		{
 			return evaluateBoard(turn);
 		}
 
-		int max = -Integer.MAX_VALUE;
+		int score;
+		String player = isMaximizing ? "white" : "black";
+		int turn = isMaximizing ? 1 : 0;
 		char[] myFigures = getMyFigures(turn);
-		for(int y = 0; y < 8; y++)
+
+		if(isMaximizing)
 		{
-			for(int x = 0; x < 8; x++)
+			score = -Integer.MAX_VALUE;
+
+			for(int y = 0; y < 8; y++)
 			{
-				char figure = board[y][x];
-				for(char f : myFigures)
+				for(int x = 0; x < 8; x++)
 				{
-					if(figure == f)
+					boolean breakCon = false;
+					char figure = board[y][x];
+					for(char f : myFigures)
 					{
-						for(int i = 0; i < 8; i++)
+						if(figure == f)
 						{
-							for(int j = 0; j < 8; j++)
+							for(int i = 0; i < 8; i++)
 							{
-								if(checkMove("white", turn, y, x, i, j))
+								for(int j = 0; j < 8; j++)
 								{
-									moveFigureNoCheckMove(y, x, i, j);
-									int score = mini(depth - 1);
-									if(score > max)
+									if(checkMove(player, turn, y, x, i, j))
 									{
-										max = score;
+										char temp = board[i][j];
+										board[i][j] = board[y][x];
+										board[y][x] = ' ';
+
+										score = Math.max(score, minimax(depth - 1, alpha, beta, false));
+										alpha = Math.max(alpha, score);
+
+										board[y][x] = board[i][j];
+										board[i][j] = temp;
+
+										if(beta <= alpha)
+										{
+											breakCon = true;
+											break;
+										}
 									}
 								}
+								if(breakCon)
+								{
+									break;
+								}
 							}
+							break;
 						}
 					}
 				}
 			}
 		}
-		return max;
-	}
-
-	private static int mini(int depth)
-	{
-		if(depth == 0)
+		else
 		{
-			return -evaluateBoard(turn);
-		}
+			score = Integer.MAX_VALUE;
 
-		int min = Integer.MAX_VALUE;
-		char[] myFigures = getMyFigures(turn);
-		for(int y = 0; y < 8; y++)
-		{
-			for(int x = 0; x < 8; x++)
+			for(int y = 0; y < 8; y++)
 			{
-				char figure = board[y][x];
-				for(char f : myFigures)
+				for(int x = 0; x < 8; x++)
 				{
-					if(figure == f)
+					boolean breakCon = false;
+					char figure = board[y][x];
+					for(char f : myFigures)
 					{
-						for(int i = 0; i < 8; i++)
+						if(figure == f)
 						{
-							for(int j = 0; j < 8; j++)
+							for(int i = 0; i < 8; i++)
 							{
-								if(checkMove("white", turn, y, x, i, j))
+								for(int j = 0; j < 8; j++)
 								{
-									moveFigureNoCheckMove(y, x, i, j);
-									int score = maxi(depth - 1);
-									if(score < min)
+									if(checkMove(player, turn, y, x, i, j))
 									{
-										min = score;
+										char temp = board[i][j];
+										board[i][j] = board[y][x];
+										board[y][x] = ' ';
+
+										score = Math.min(score, minimax(depth - 1, alpha, beta, true));
+										beta = Math.min(beta, score);
+
+										board[y][x] = board[i][j];
+										board[i][j] = temp;
+
+										if(beta <= alpha)
+										{
+											breakCon = true;
+											break;
+										}
 									}
 								}
-							}
-						}
-					}
-				}
-			}
-		}
-		return min;
-	}
-
-
-	public static void botMove()
-	{
-//		int[] a = {1, 2, 3};
-//		int[] b = new int[3];
-//		System.arraycopy(a, 0, b, 0, 3);
-//		a[0] = 4;
-//
-//		System.out.print("A: ");
-//		for(int i = 0; i < a.length; i++)
-//		{
-//			System.out.print(a[i] + ", ");
-//		}
-//		System.out.println();
-//		System.out.print("B: ");
-//		for(int i = 0; i < b.length; i++)
-//		{
-//			System.out.print(b[i] + ", ");
-//		}
-//		System.out.println();
-
-		// FIXME: 18/04/2021 !!!!!!!!!!!!!
-		char[][] newBoard = new char[8][8];
-		for(int i = 0; i < 8; i++)
-		{
-			System.arraycopy(board[i], 0, newBoard[i], 0, 8);
-		}
-		int score = maxi(4);
-		System.err.println(score);
-		board = newBoard;
-
-
-		// TODO Improve the algo lmao: MINIMAX
-		char[] myFigures = getMyFigures(turn);
-		int[] backupMove = new int[] {-1, -1, -1, -1};
-		for(int y = 0; y < 8; y++)
-		{
-			for(int x = 0; x < 8; x++)
-			{
-				char figure = board[y][x];
-				for(char f : myFigures)
-				{
-					if(figure == f)
-					{
-						int[][] possibleMoves = new int[50][2];
-						int counter = 0;
-						boolean moveCondition = false;
-						for(int i = 0; i < 8; i++)
-						{
-							for(int j = 0; j < 8; j++)
-							{
-								if(checkMove(player, turn, y, x, i, j))
+								if(breakCon)
 								{
-									moveCondition = true;
-									possibleMoves[counter][0] = j;
-									possibleMoves[counter++][1] = i;
-									backupMove[0] = x;
-									backupMove[1] = y;
-									backupMove[2] = j;
-									backupMove[3] = i;
+									break;
 								}
 							}
-						}
-						if(moveCondition && (Math.random() <= 0.2 || isCheck() == turn))
-						{
-							int choice = (int) (Math.random() * counter);
-							Sah.moveFigure(y, x, possibleMoves[choice][1], possibleMoves[choice][0]);
-							return;
+							break;
 						}
 					}
 				}
 			}
 		}
-		if(backupMove[0] != -1)
-		{
-			Sah.moveFigure(backupMove[1], backupMove[0], backupMove[3], backupMove[2]);
-		}
-		else // Bot has no possible move -> player won
-		{
-			turn = 1 - turn;
-			painter.setTurn(turn);
-			gameState = 1; // Player won
-			painter.setWinner(gameState);
-		}
+		return score;
 	}
 
 	public static void setPlayer(String p)
